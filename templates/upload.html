@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV Upload</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .upload-container {
+            text-align: center;
+            padding: 20px;
+            border: 2px dashed #007bff;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            width: 50%;
+            margin: auto;
+        }
+        .upload-container h1 {
+            color: #007bff;
+        }
+        input[type="file"] {
+            margin: 15px 0;
+        }
+        .warning {
+            color: red;
+            font-size: 14px;
+            display: none; /* Hidden by default */
+        }
+    </style>
+</head>
+<body>
+    <div class="upload-container">
+        <h1>Upload CSV File</h1>
+        <form action="/upload" method="POST" enctype="multipart/form-data" onsubmit="return validateFile()">
+            <input type="file" name="file" accept=".csv" required>
+            <br>
+            <button type="submit">Generate and predict</button>
+        </form>
+        <div id="warningMessage" class="warning">Please upload a CSV file</div>
+    </div>
+
+    <script>
+        function validateFile() {
+            var fileInput = document.querySelector('input[type="file"]');
+            var filePath = fileInput.value;
+            var warningMessage = document.getElementById('warningMessage');
+            
+            // Check if the file is a CSV
+            if (filePath.slice(-4) !== '.csv') {
+                warningMessage.style.display = 'block';
+                return false; // Prevent form submission
+            }
+            
+            // Hide the warning message if the file is valid
+            warningMessage.style.display = 'none';
+            return true; // Allow form submission
+        }
+    </script>
+</body>
+</html>
