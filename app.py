@@ -66,29 +66,18 @@ def predict_datapoint():
             print(f"Saving uploaded file to: {file_path}")
             file.save(file_path)
 
-            df = pd.read_csv(file_path)
-            orignal_df = df.copy()
+            
 
             try:
                 
                 #processed_data = preprocessor(df)
                 #df['Delay_Percentage'] = predict_delay(model, processed_data)
 
-                pred_df = df
-                predict_pipeline=PredictPipeline()
-                results,proba=predict_pipeline.predict(pred_df)
-                #df['Status'] = (df['Delay_Percentage']>=50).map({True: 'Delayed', False: 'On Time'})
-
-                pred_df["Delay_Percentage"] = proba[:,1]*100 #Converting Probability of class 1 to percentage
-                pred_df["Status"] = (df["Delay_Percentage"]>=50).map({True: "Delayed", False: "On Time"})
+                pp = PredictPipeline()
                 processed_file_name = f"results_{file.filename}"
                 processed_file_path = os.path.join(app.config['PROCESSED_FOLDER'], processed_file_name)
-
+                pp.predict(file_path, processed_file_path)
                 print(f"Processed file will be saved to: {processed_file_path}")
-                columns_to_append = df[['Delay_Percentage', 'Status']]
-                final_df = pd.concat([orignal_df, columns_to_append], axis=1)
-                final_df.to_csv(processed_file_path, index=False)
-
                 message = f"The final CSV file has been saved in the processed folder as: {processed_file_name}"
 
                 return render_template('results.html', file_name = processed_file_name ,message = message)

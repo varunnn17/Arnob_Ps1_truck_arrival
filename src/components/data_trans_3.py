@@ -30,6 +30,7 @@ class CompleteTransformer(BaseEstimator, TransformerMixin):
         # Create a copy to avoid modifying the original data
         df = df.copy()
         try:
+            
 ################################################
 #3.0 - Transforming the date and time columns to form PlannedDateTime & ArrivedDateTime
             print("Shape Before Transformation - 3.0 - Forming PlannedDateTime & ArrivedDateTime:",df.shape)
@@ -89,13 +90,7 @@ class CompleteTransformer(BaseEstimator, TransformerMixin):
            
 ################################################
 #3.6 - Removing Records with Duplicate Trip Nos
-            print("Shape Before Transformation - 3.6 - Remove Duplicate Trip Nos:",df.shape)
-            trip_count_multiple = df.groupby("Trip Nr")["Trip Nr"].count()
-            trips_with_mult_counts = trip_count_multiple[trip_count_multiple > 1].index
-            df_filtered = df[df["Trip Nr"].isin(trips_with_mult_counts)]
-            df = df.drop(df_filtered.index)  # Removing duplicates
-            logging.info("Duplicate trips removed successfully.")
-            print("Shape After Transformation - 3.6 - Remove Duplicate Trip Nos:",df.shape)
+            
             
 ################################################
 #3.7 - Deriving TimeBasedFeatures from PlannedDateTime
@@ -381,7 +376,10 @@ class DataTransformation3:
             logging.info(f"Reading path for CSV files for train and test")
             #Step-1: Loading the Train and Test data from the path provided
             train_df = pd.read_csv(train_data_path)
+            #print("null in train_df",train_df.isnull().sum())
             test_df = pd.read_csv(test_data_path)
+            print("Train Shape",train_df.shape)
+            print("Test Shape",test_df.shape)
 
             #Step-1.5: Preprocessing which is just specific with regards 
             # to model building and will not be required in preprocessor.pkl
@@ -399,7 +397,7 @@ class DataTransformation3:
                 format="%d/%m/%Y %I:%M:%S %p",
             )
 
-            print("Shape Before Transformation - 3.0 - Forming PlannedDateTime & ArrivedDateTime:",train_df.shape,test_df.shape)
+           # print("Shape Before Transformation - 3.0 - Forming PlannedDateTime & ArrivedDateTime:",train_df.shape,test_df.shape)
             test_df["PlannedDateTime"] = pd.to_datetime(
                 test_df["Planned Date"] + " " + test_df["Planned Time"],
                 format="%d/%m/%Y %I:%M:%S %p",
@@ -425,6 +423,7 @@ class DataTransformation3:
             test_df['Delay'] = (test_df['ArrivedDateTime'] - test_df['PlannedDateTime']).dt.total_seconds() / 60  # in minutes
             test_df["TargetVariable"] = np.where(test_df["Delay"] >= 15, 1, 0)  # Target variable derived
             logging.info("Target variable derived successfully.")
+            #print("null in train_df after finding target variable",train_df.isnull().sum())
             print("Shape After Transformation - T.1 - Derive Target Variable for Test:",test_df.shape)
  
 ################################################
@@ -433,11 +432,44 @@ class DataTransformation3:
             train_df = train_df.drop(columns = to_drop,axis = 1)
             test_df = test_df.drop(columns = to_drop,axis = 1)
 
+            print("Shape Before Transformation - 3.6 - Remove Duplicate Trip Nos:",train_df.shape)
+            trip_count_multiple = train_df.groupby("Trip Nr")["Trip Nr"].count()
+            trips_with_mult_counts = trip_count_multiple[trip_count_multiple > 1].index
+            df_filtered = train_df[train_df["Trip Nr"].isin(trips_with_mult_counts)]
+            #print("Duplicate Trip Nos:")
+            print(df_filtered.head(7))
+            
+
+            train_df = train_df.drop(df_filtered.index)
+             # Removing duplicates
+            logging.info("Duplicate trips removed successfully.")
+            print("Shape After Transformation - 3.6 - Remove Duplicate Trip Nos:",train_df.shape)
+            
+            print("###########################################################################")
+            print("#Check 1: Checking before breaking in train_df has any nulls")
+            print("nan in train_df",train_df.isna().sum())
+            print("###########################################################################")
+
+            
+
+
 
             #Step-2: Removing the Target Variable from the dataframe and sending it for preprocessing
             target_column_name = "TargetVariable"
             input_feature_train_df = train_df.drop(columns = [target_column_name],axis = 1)
+            #print("shape of input_feature_train_df",input_feature_train_df.shape)
             target_feature_train_df = train_df[target_column_name]
+            null_count = target_feature_train_df.isnull().sum()
+            #print("Null Count in Target Variable:",null_count) # No nulls found here
+
+            
+            print("######################CHecking Shape before Merge######################")
+            print("shape of target_feature_train_df",target_feature_train_df.shape)
+            print("shape of input_feature_train_df",input_feature_train_df.shape)
+            print("#######################################################################")
+
+            print("nan in input_feature_train_df_final",train_df.isna().sum())
+
 
             input_feature_test_df = test_df.drop(columns = [target_column_name],axis = 1)
             target_feature_test_df = test_df[target_column_name]    
@@ -447,12 +479,50 @@ class DataTransformation3:
 
             #Step-2: Sending the DataFrame with Input Features for preprocessing
             preprocessing_obj = self.get_data_transformer_object()
+
+            input_feature_train_df = input_feature_train_df.reset_index(drop=True)
+            target_feature_train_df = target_feature_train_df.reset_index(drop=True)
+
             input_feature_train_df_final = preprocessing_obj.fit_transform(input_feature_train_df)
             input_feature_test_df_final = preprocessing_obj.fit_transform(input_feature_test_df)
 
+
+
+           #print("top 10 of input_feature_train_df_final",input_feature_train_df_final.head(10))
+
             #Step-3: Rejoining the train_df_final & test_df_final back with the Target Variable
+            # Export the DataFrame to a CSV file
+            # file_path = 'artifacts'
+            # input_feature_train_df.to_csv('input_feature_train_df_final.csv', index=True)
+            # target_feature_train_df.to_csv('target_feature_train_df.csv', index=True)
+            # input_feature_train_df_final.to_csv('input_feature_train_df_final.csv', index=True)
+
             train_df_final = pd.concat([input_feature_train_df_final,target_feature_train_df],axis = 1)
             test_df_final = pd.concat([input_feature_test_df_final,target_feature_test_df],axis = 1)
+
+            print("######################CHecking Shape After Merge######################")
+            print("Shape of input_feature_train_df_final",input_feature_train_df_final.shape)
+            print("shape of target_feature_train_df",target_feature_train_df.shape)
+            print("Shape of train_df_final",train_df_final.shape)
+            print("#######################################################################")
+
+
+            print("nan in input_feature_train_df_final",train_df_final.isna().sum())
+
+            #print("top 5 records of train_df_final", train_df_final.head(5))
+            #print("Shape of test_df_final", test_df_final.shape)
+            #print(test_df_final.head(2))
+
+            # Filter rows where the target variable is NaN
+            #nan_records = train_df_final[train_df_final['TargetVariable'].isna()]
+            #16925
+
+            
+
+            # Display the records
+            #cls
+            # print("Records with NaN TargetVariable:")
+            #print(nan_records)
 
 
             # Step 4: Save the transformed data to CSV files - this is just a precautionary measure

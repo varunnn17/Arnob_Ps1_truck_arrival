@@ -10,6 +10,14 @@ from sklearn.model_selection import GridSearchCV
 
 from src.exception import CustomException
 
+
+
+# src/utils.py
+
+from sklearn.utils.validation import _deprecate_positional_args
+
+
+
 def save_object(file_path, obj):
     try:
         dir_path = os.path.dirname(file_path)
@@ -60,3 +68,17 @@ def load_object(file_path):
 
     except Exception as e:
         raise CustomException(e, sys)
+def test_on_unseen_data(final_best_model, model_2, model_3, unseen):
+    final_best_probs = final_best_model.predict_proba(unseen)[:, 1]  # Probabilities for class 1
+    model_2_probs = model_2.predict_proba(unseen)[:, 1]  # Probabilities for class 1
+    model_3_probs = model_3.predict_proba(unseen)[:, 1]
+    final_best_weight = 2
+    model_2_weight = 1  # Higher weight for XGBoost
+    model_3_weight = 1
+
+    # Combine the probabilities using weighted average
+    weighted_probs = (final_best_weight * final_best_probs + model_2_weight * model_2_probs + model_3_weight*model_3_probs) / (final_best_weight + model_2_weight + model_3_weight)
+
+    # Convert probabilities to final predictions (threshold at 0.5)
+    y_pred = (weighted_probs >= 0.49).astype(int)
+    return y_pred, weighted_probs 

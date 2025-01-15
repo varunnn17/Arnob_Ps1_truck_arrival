@@ -43,7 +43,9 @@ class DataIngestion:
         logging.info("Entered the data ingestion method or component")
         try:
             #Step - 1 = Reading the dataset
-            df = pd.read_csv(r"notebook\data\PS_1_TruckArrival_Class_Dataset_withActualColumns.csv") #Here we can read from anywhere
+            df = pd.read_csv(r"artifacts\PS_1_TruckArrival_Class_Dataset_withActualColumns.csv") #Here we can read from anywhere
+            columns_to_check = ['RelationName', 'Planned Time', 'Order Number']
+            df = df.dropna(subset=columns_to_check)
             logging.info('Read the dataset as dataframe')
 
             os.makedirs(os.path.dirname(self.ingestion_config.train_data_path),exist_ok = True) #Getting the directory name and not deleting
@@ -98,11 +100,11 @@ if __name__ == "__main__":
    #Final Scores are returned which we can print
     modeltrainer = ModelTrainer()
     print("########3- Sending the final dataframes for model building after transformation")
-    print("Sample of train_dataframe")
-    print(train_df_final.head(2))
 
     print("########4- Printing the scores in CV fold and Holdout Set")
-    model_scores,model_scores_test = modeltrainer.initiate_model_trainer(train_df_final,test_df_final)
+    model_scores, best_rf_model_on_recall, best_xgb_model_on_recall, best_gb_model_on_recall = modeltrainer.initiate_model_trainer(train_df_final)
+    modeltrainer.all_models_used(train_df_final)
+    modeltrainer.predict_for_validation_set(test_df_final)
 
 
  
